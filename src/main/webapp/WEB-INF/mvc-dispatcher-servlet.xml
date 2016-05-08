@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:mvc="http://www.springframework.org/schema/mvc"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:context="http://www.springframework.org/schema/context"
-       xmlns:tx="http://www.springframework.org/schema/tx"
-       xsi:schemaLocation="
+	xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context" xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="
         http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans.xsd
         http://www.springframework.org/schema/mvc
@@ -12,33 +10,72 @@
         http://www.springframework.org/schema/context
         http://www.springframework.org/schema/context/spring-context.xsd
         http://www.springframework.org/schema/tx
-        http://www.springframework.org/schema/tx/spring-tx-4.0.xsd">
-      <mvc:resources location="/resources/" mapping="/resources/**" />
-	
-	<context:component-scan base-package="com.zhnan.reader" />
+        http://www.springframework.org/schema/tx/spring-tx-4.2.xsd">
+	<mvc:resources location="/resources/" mapping="/resources/**" />
+	<import resource="classpath*:/applicationContext.xml" />
+	<!-- shiro start -->
+	<!--  --><bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+		<property name="securityManager" ref="securityManager" />
+		<property name="loginUrl" value="/login" />
+		<property name="successUrl" value="/main" />
+		<property name="filterChainDefinitions">
+			<value>
+				/login = authc
+				/*=anon
+			</value>
+		</property>
+	</bean>
+
+	<bean id="sessionDao" class="org.apache.shiro.session.mgt.eis.EnterpriseCacheSessionDAO"></bean>
+	<bean id="sessionManager" class="org.apache.shiro.web.session.mgt.DefaultWebSessionManager">
+		<property name="globalSessionTimeout" value="7200000" />
+	</bean>
+	<bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+		<property name="realm" ref="fmsRealm" />
+		<property name="sessionMode" value="native" />
+		<property name="sessionManager" ref="sessionManager" />
+	</bean>
+
+	<bean id="lifecycleBeanPostProcessor" class="org.apache.shiro.spring.LifecycleBeanPostProcessor" />
+
+	<bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="staticMethod" value="org.apache.shiro.SecurityUtils.setSecurityManager" />
+		<property name="arguments" ref="securityManager" />
+	</bean>
+
+	<bean class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator" depends-on="lifecycleBeanPostProcessor" />
+	<bean class="org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor">
+		<property name="securityManager" ref="securityManager" />
+	</bean>
+	<!-- shiro end -->
 
 	<mvc:annotation-driven>
-		<mvc:message-converters>
-			<bean class="org.springframework.http.converter.StringHttpMessageConverter">
-				<property name="supportedMediaTypes">
-					<list>
-						<value>text/html;charset=UTF-8</value>
-						<value>text/plain;charset=UTF-8</value>
-					</list>
-				</property>
-			</bean>
-      
-		</mvc:message-converters>
 	</mvc:annotation-driven>
+ 
+	<bean
+		class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<property name="prefix">
+			<value>/WEB-INF/page/</value>
+		</property>
+		<property name="suffix">
+			<value>.jsp</value>
+		</property>
+	</bean>
 
-
-
-	<bean id="multipartResolver"  
-    class="org.springframework.web.multipart.commons.CommonsMultipartResolver">  
-    <!-- 设置上传文件的最大尺寸为1MB -->  
-    <property name="maxUploadSize">  
-        <value>104857600</value>  
-    </property>  
-</bean> 
+	<bean class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+		<property name="exceptionMappings">
+			<props>
+				<prop key="com.znc.fms.exception.FMSException">common/failed</prop>
+			</props>
+		</property>
+	</bean>
 	
+	<bean id="multipartResolver"
+		class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<!-- 设置上传文件的最大尺寸为1MB -->
+		<property name="maxUploadSize">
+			<value>104857600</value>
+		</property>
+	</bean>
+
 </beans>
